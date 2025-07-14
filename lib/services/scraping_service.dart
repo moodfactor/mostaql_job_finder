@@ -35,8 +35,9 @@ class ScrapingService {
         final description = element.querySelector('p')?.text.trim() ?? '';
         final author = element.querySelector('td > a.user-card-name')?.text.trim() ?? '';
         final postTime = element.querySelector('time')?.text.trim() ?? '';
-        final offerCountString = element.querySelector('td > div > span')?.text.trim() ?? '0';
-        final offerCount = int.tryParse(offerCountString.split(' ')[0]) ?? 0;
+        final offerCountElement = element.querySelector('li.text-muted i.fa-ticket')?.parent;
+        final offerCountString = offerCountElement?.text.trim() ?? '0';
+        final offerCount = int.tryParse(offerCountString.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
         jobs.add(Job(
           title: title,
           description: description,
@@ -55,106 +56,97 @@ class ScrapingService {
   /// More robustly fetches all details from the job page.
 
 Future<Job> fetchJobDetails(String jobUrl) async {
-  final response = await http.get(Uri.parse(jobUrl));
-  if (response.statusCode != 200) {
-    throw Exception('Failed to load job details.');
-  }
-
-  final document = parse(response.body);
-
-  final projectDetailsCard = document.querySelector('div.project-details-card');
-  final employerCard = document.querySelector('div.profile-card');
-
-  final title = document.querySelector('h1')?.text.trim() ?? '';
-
-  // Get description
-  String description = '';
-  final descElement = document.querySelector('div#projectDetailsTab div.text-wrapper-div.carda__content');
-  if (descElement != null) {
-    description = descElement.text.trim();
-  }
-
-  // Extract project details with broader search
-  String? status, postTime, budget, executionDuration;
-  
-  // Search entire page for project details
-  final allText = document.body?.text ?? '';
-  
-  // Extract status
-  if (allText.contains('مفتوح')) status = 'مفتوح';
-  else if (allText.contains('مغلق')) status = 'مغلق';
-  
-  // Extract budget
-  final budgetMatch = RegExp(r'(\d+)\s*(ريال|دولار|\$)').firstMatch(allText);
-  if (budgetMatch != null) {
-    budget = '${budgetMatch.group(1)} ${budgetMatch.group(2)}';
-  }
-  
-  // Extract duration
-  final durationMatch = RegExp(r'(\d+)\s*(يوم|أسبوع|شهر)').firstMatch(allText);
-  if (durationMatch != null) {
-    executionDuration = '${durationMatch.group(1)} ${durationMatch.group(2)}';
-  }
-
-  // Extract skills with multiple selectors
-  List<String> skills = [];
-  final skillSelectors = [
-    'ul.skills__list > li.skills__item > a',
-    '.skills a',
-    '[class*="skill"] a',
-    '.tag',
-    '.badge'
-  ];
-  
-  for (String selector in skillSelectors) {
-    final skillElements = document.querySelectorAll(selector);
-    if (skillElements.isNotEmpty) {
-      skills = skillElements.map((e) => e.text.trim()).where((s) => s.isNotEmpty).toList();
-      if (skills.isNotEmpty) break;
+    final response = await http.get(Uri.parse(jobUrl));
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load job details.');
     }
-  }
 
-  String? employerName, employerProfession, employerRegistrationDate,
-      employerHiringRate, employerOpenProjects, employerProjectsInProgress,
-      employerOngoingCommunications;
+    final document = parse(response.body);
 
-  if (employerCard != null) {
-    employerName = employerCard.querySelector('h5.profile-card__title a')?.text.trim();
-    employerProfession = employerCard.querySelector('span.profile-card__specialization')?.text.trim();
+    final title = document.querySelector('h1')?.text.trim() ?? '';
 
-    final metaItems = employerCard.querySelectorAll('.profile-card__meta > div');
-    for (var item in metaItems) {
-      final label = item.querySelector('.profile-card__meta-key')?.text.trim();
-      final value = item.querySelector('.profile-card__meta-value')?.text.trim();
+    String description = '';
+    final descElement = document.querySelector('div#projectDetailsTab div.text-wrapper-div.carda__content');
+    if (descElement != null) {
+      description = descElement.text.trim();
+    }
+
+    String? status, postTime, budget, executionDuration;
+    int offerCount = 0;
+
+    final detailsList = document.querySelectorAll('div.meta-row');
+    for (var item in detailsList) {
+      final label = item.querySelector('.meta-label')?.text.trim();
+      final value = item.querySelector('.meta-value')?.text.trim();
+
       if (label != null && value != null) {
-        if (label.contains('تاريخ التسجيل')) employerRegistrationDate = value;
-        if (label.contains('معدل توظيف')) employerHiringRate = value;
-        if (label.contains('المشاريع المفتوحة')) employerOpenProjects = value;
-        if (label.contains('مشاريع قيد التنفيذ')) employerProjectsInProgress = value;
-        if (label.contains('التواصلات الجارية')) employerOngoingCommunications = value;
+        if (label.contains('حالة المشروع')) {
+          status = value;
+        } else if (label.contains('تاريخ النشر')) {
+          postTime = value;
+        } else if (label.contains('الميزانية')) {
+          budget = value;
+        } else if (label.contains('مدة التنفيذ')) {
+          executionDuration = value;
+        }
       }
     }
-  }
 
-  return Job(
-    title: title,
-    description: description,
-    author: employerName ?? '',
-    postTime: postTime ?? '',
-    offerCount: 0,
-    url: jobUrl,
-    status: status,
-    budget: budget,
-    executionDuration: executionDuration,
-    skills: skills.isNotEmpty ? skills : null,
-    employerName: employerName,
-    employerProfession: employerProfession,
-    employerRegistrationDate: employerRegistrationDate,
-    employerHiringRate: employerHiringRate,
-    employerOpenProjects: employerOpenProjects,
-    employerProjectsInProgress: employerProjectsInProgress,
-    employerOngoingCommunications: employerOngoingCommunications,
-  );
-}
+    final offerCountElement = document.querySelector('#project-bids > .heada > .heada__title');
+    if (offerCountElement != null) {
+      final offerCountText = offerCountElement.text.trim();
+      final offerCountMatch = RegExp(r'(\d+)').firstMatch(offerCountText);
+      if (offerCountMatch != null) {
+        offerCount = int.tryParse(offerCountMatch.group(1)!) ?? 0;
+      }
+    }
+
+    List<String> skills = [];
+    final skillElements = document.querySelectorAll('ul.skills__list > li.skills__item > a');
+    skills = skillElements.map((e) => e.text.trim()).toList();
+
+    String? employerName, employerProfession, employerRegistrationDate,
+        employerHiringRate, employerOpenProjects, employerProjectsInProgress,
+        employerOngoingCommunications;
+
+    final employerCard = document.querySelector('div.profile_card');
+    if (employerCard != null) {
+      employerName = employerCard.querySelector('h5.postcard__title.profile__name bdi')?.text.trim();
+      employerProfession = employerCard.querySelector('ul.meta_items li a')?.text.trim();
+
+      final metaItems = employerCard.querySelectorAll('table.table-meta tbody tr');
+      for (var item in metaItems) {
+        final label = item.querySelector('td:first-child')?.text.trim();
+        final value = item.querySelector('td:last-child')?.text.trim();
+        if (label != null && value != null) {
+          if (label.contains('تاريخ التسجيل')) employerRegistrationDate = value;
+          if (label.contains('معدل توظيف')) employerHiringRate = value;
+          if (label.contains('المشاريع المفتوحة')) employerOpenProjects = value;
+          if (label.contains('مشاريع قيد التنفيذ')) employerProjectsInProgress = value;
+          if (label.contains('التواصلات الجارية')) employerOngoingCommunications = value;
+        }
+      }
+    }
+
+    return Job(
+      title: title,
+      description: description,
+      author: employerName ?? '',
+      postTime: postTime ?? '',
+      offerCount: offerCount,
+      url: jobUrl,
+      status: status,
+      budget: budget,
+      executionDuration: executionDuration,
+      skills: skills.isNotEmpty ? skills : null,
+      employerName: employerName,
+      employerProfession: employerProfession,
+      employerRegistrationDate: employerRegistrationDate,
+      employerHiringRate: employerHiringRate,
+      employerOpenProjects: employerOpenProjects,
+      employerProjectsInProgress: employerProjectsInProgress,
+      employerOngoingCommunications: employerOngoingCommunications,
+    );
+  }
 
 }
