@@ -4,7 +4,8 @@ import 'package:mostaql_job_finder/services/scraping_service.dart';
 void main() {
   test('fetchJobDetails retrieves details correctly', () async {
     final scrapingService = ScrapingService();
-    final job = await scrapingService.fetchJobDetails('https://mostaql.com/project/1121029-%D8%AA%D8%B5%D9%85%D9%8A%D9%85-%D9%87%D9%88%D9%8A%D8%A9-%D8%A8%D8%B5%D8%B1%D9%8A%D8%A9-%D9%88%D8%A8%D8%B1%D8%B2%D9%86%D8%AA%D9%8A%D8%B4%D9%86');
+    final job = await scrapingService.fetchJobDetails('https://mostaql.com/project/1121054-%D8%AA%D8%B5%D9%85%D9%8A%D9%85-%D9%85%D8%AA%D8%AC%D8%B1-%D8%A5%D9%84%D9%83%D8%AA%D8%B1%D9%88%D9%86%D9%8A-%D8%AE%D8%A7%D8%B5-%D8%A8%D9%85%D9%84%D8%A7%D8%A8%D8%B3-%D8%B9%D9%84%D9%89-%D9%88%D9%88%D8%B1%D8%AF%D8%A8%D8%B1%D9%8A%D8%B3');
+    
     
     expect(job.offerCount, isNot(0));
     expect(job.status, isNotNull);

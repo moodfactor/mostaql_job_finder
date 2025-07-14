@@ -115,17 +115,26 @@ Future<Job> fetchJobDetails(String jobUrl) async {
       employerProfession = employerCard.querySelector('ul.meta_items li a')?.text.trim();
 
       final metaItems = employerCard.querySelectorAll('table.table-meta tbody tr');
-      for (var item in metaItems) {
-        final label = item.querySelector('td:first-child')?.text.trim();
-        final value = item.querySelector('td:last-child')?.text.trim();
-        if (label != null && value != null) {
-          if (label.contains('تاريخ التسجيل')) employerRegistrationDate = value;
-          if (label.contains('معدل توظيف')) employerHiringRate = value;
-          if (label.contains('المشاريع المفتوحة')) employerOpenProjects = value;
-          if (label.contains('مشاريع قيد التنفيذ')) employerProjectsInProgress = value;
-          if (label.contains('التواصلات الجارية')) employerOngoingCommunications = value;
-        }
-      }
+for (var item in metaItems) {
+  final labelElement = item.querySelector('td:first-child span') ?? item.querySelector('td:first-child');
+  final label = labelElement?.text.trim();
+  final valueElement = item.querySelector('td:last-child');
+  final value = valueElement?.text.trim();
+
+  if (label != null && value != null) {
+    if (label.contains('تاريخ التسجيل')) {
+      employerRegistrationDate = valueElement?.querySelector('time')?.text.trim() ?? value;
+    } else if (label.contains('معدل التوظيف')) {
+      employerHiringRate = valueElement?.querySelector('label')?.text.trim() ?? value;
+    } else if (label.contains('المشاريع المفتوحة')) {
+      employerOpenProjects = value;
+    } else if (label.contains('مشاريع قيد التنفيذ')) {
+      employerProjectsInProgress = value;
+    } else if (label.contains('التواصلات الجارية')) {
+      employerOngoingCommunications = value;
+    }
+  }
+}
     }
 
     return Job(
