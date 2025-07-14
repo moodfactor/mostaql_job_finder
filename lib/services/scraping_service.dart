@@ -69,8 +69,7 @@ Future<Job> fetchJobDetails(String jobUrl) async {
 
   // Get description
   String description = '';
-  final descElement = document.querySelector('.project-description-card .card-body') ?? 
-                     document.querySelector('.project-description');
+  final descElement = document.querySelector('div#projectDetailsTab div.text-wrapper-div.carda__content');
   if (descElement != null) {
     description = descElement.text.trim();
   }
