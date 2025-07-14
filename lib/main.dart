@@ -2,10 +2,10 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:mostaql_job_finder/job_details_page.dart';
 import 'package:mostaql_job_finder/models/filter_model.dart';
 import 'package:mostaql_job_finder/models/job.dart';
 import 'package:mostaql_job_finder/services/scraping_service.dart';
+import 'package:mostaql_job_finder/job_details_page.dart';
 import 'package:mostaql_job_finder/settings_page.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -29,11 +29,10 @@ class MyApp extends StatelessWidget {
             brightness: Brightness.light,
             primarySwatch: Colors.blue,
             scaffoldBackgroundColor: Colors.lightBlue.shade100,
-            cardColor: Colors.white.withAlpha((0.7 * 255).round()),
+            cardColor: Colors.white.withOpacity(0.7),
             textTheme: const TextTheme(bodyMedium: TextStyle(color: Colors.black87)),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
+              backgroundColor: Colors.transparent, elevation: 0,
               iconTheme: IconThemeData(color: Colors.black87),
               titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold),
             ),
@@ -42,11 +41,10 @@ class MyApp extends StatelessWidget {
             brightness: Brightness.dark,
             primarySwatch: Colors.blue,
             scaffoldBackgroundColor: Colors.blueGrey.shade900,
-            cardColor: Colors.black.withAlpha((0.5 * 255).round()),
+            cardColor: Colors.black.withOpacity(0.5),
             textTheme: const TextTheme(bodyMedium: TextStyle(color: Colors.white)),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
+              backgroundColor: Colors.transparent, elevation: 0,
               iconTheme: IconThemeData(color: Colors.white),
               titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
             ),
@@ -72,10 +70,9 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Job> _jobs = [];
   List<Job> _filteredJobs = [];
   bool _isLoading = true;
+  bool _isApplyingAdvancedFilters = false;
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
-
-  // --- NEW: State for filters ---
   JobFilters _activeFilters = JobFilters();
 
   final List<String> _categories = [
@@ -100,79 +97,79 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _fetchJobs({String? category}) async {
     setState(() => _isLoading = true);
     try {
-      // We fetch all jobs first, then apply filters client-side.
-      // This is necessary because the website doesn't support API-level filtering for these new criteria.
       final jobs = await _scrapingService.fetchJobs(category: category);
       setState(() {
         _jobs = jobs;
-        // After fetching, apply any active filters.
         _applyFilters();
       });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch jobs: $e')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to fetch jobs: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- NEW: Updated filtering logic ---
-  void _applyFilters() {
-    List<Job> filtered = List.from(_jobs);
+  Future<void> _applyFilters() async {
+    if (_activeFilters.areAdvancedFiltersActive && !_isLoading) {
+      setState(() => _isApplyingAdvancedFilters = true);
+    }
 
-    // Apply search query
-    if (_searchController.text.isNotEmpty) {
-      filtered = filtered.where((job) {
-        return job.title.toLowerCase().contains(_searchController.text.toLowerCase());
+    List<Job> tempFiltered = _jobs.where((job) {
+      final searchMatch = _searchController.text.isEmpty || job.title.toLowerCase().contains(_searchController.text.toLowerCase());
+      final offerMatch = switch (_activeFilters.offerRange) {
+        OfferRange.lessThan5 => job.offerCount < 5,
+        OfferRange.from5to10 => job.offerCount >= 5 && job.offerCount <= 10,
+        OfferRange.from10to20 => job.offerCount >= 10 && job.offerCount <= 20,
+        OfferRange.moreThan20 => job.offerCount > 20,
+        _ => true,
+      };
+      return searchMatch && offerMatch;
+    }).toList();
+
+    if (_activeFilters.areAdvancedFiltersActive) {
+      final jobsToDetail = tempFiltered.take(15).toList();
+      final futures = jobsToDetail.map((job) => _scrapingService.fetchJobDetails(job.url).catchError((e) => job)).toList();
+      
+      final detailedJobs = await Future.wait(futures);
+      
+      Map<String, Job> detailedJobsMap = {for (var j in detailedJobs) j.url: j};
+
+      for (int i = 0; i < tempFiltered.length; i++) {
+        if (detailedJobsMap.containsKey(tempFiltered[i].url)) {
+           final detailedJob = detailedJobsMap[tempFiltered[i].url]!;
+           tempFiltered[i] = tempFiltered[i].copyWith(
+              budget: detailedJob.budget,
+              employerHiringRate: detailedJob.employerHiringRate,
+           );
+        }
+      }
+
+      tempFiltered = tempFiltered.where((job) {
+        final hiringRateMatch = switch (_activeFilters.hiringRate) {
+          HiringRate.moreThan0 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! > 0,
+          HiringRate.moreThan50 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 50,
+          HiringRate.moreThan75 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 75,
+          _ => true,
+        };
+        if (_activeFilters.hiringRate != HiringRate.any && job.parsedEmployerHiringRate == null) {
+          return false;
+        }
+
+        final budgetMatch = job.parsedBudget == null || (job.parsedBudget! >= _activeFilters.budget.start && job.parsedBudget! <= _activeFilters.budget.end);
+        if ((_activeFilters.budget.start != 0 || _activeFilters.budget.end != 5000) && job.parsedBudget == null) {
+          return false;
+        }
+
+        return hiringRateMatch && budgetMatch;
       }).toList();
     }
 
-    // Apply Offer Range Filter
-    filtered = filtered.where((job) {
-      switch (_activeFilters.offerRange) {
-        case OfferRange.lessThan5:
-          return job.offerCount < 5;
-        case OfferRange.from5to10:
-          return job.offerCount >= 5 && job.offerCount <= 10;
-        case OfferRange.from10to20:
-          return job.offerCount >= 10 && job.offerCount <= 20;
-        case OfferRange.moreThan20:
-          return job.offerCount > 20;
-        case OfferRange.any:
-        default:
-          return true;
-      }
-    }).toList();
-    
-    // Apply Hiring Rate Filter
-    filtered = filtered.where((job) {
-      switch (_activeFilters.hiringRate) {
-        case HiringRate.moreThan0:
-          return job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! > 0;
-        case HiringRate.moreThan50:
-          return job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 50;
-        case HiringRate.moreThan75:
-          return job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 75;
-        case HiringRate.any:
-        default:
-          return true;
-      }
-    }).toList();
-
-    // Apply Budget Filter
-    filtered = filtered.where((job) {
-      return (job.parsedBudget == null || 
-              (job.parsedBudget! >= _activeFilters.budget.start && 
-               job.parsedBudget! <= _activeFilters.budget.end));
-    }).toList();
-
-    setState(() => _filteredJobs = filtered);
+    setState(() {
+      _filteredJobs = tempFiltered;
+      _isApplyingAdvancedFilters = false;
+    });
   }
 
-  // --- NEW: Method to show the filter sheet ---
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
@@ -197,7 +194,6 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                       child: Column(
                         children: [
-                          // Sheet Header
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
@@ -206,36 +202,34 @@ class _MyHomePageState extends State<MyHomePage> {
                                 const Text("Filters", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                                 TextButton(onPressed: () {
                                   setModalState(() => _activeFilters = JobFilters());
-                                  _applyFilters();
                                 }, child: const Text("Reset"))
                               ],
                             ),
                           ),
-                          // Filter Options
                           Expanded(
                             child: ListView(
                               controller: scrollController,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               children: [
-                                // Budget Filter (Demonstration)
                                 const Text("Budget (USD)", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                                 RangeSlider(
                                   values: _activeFilters.budget,
                                   min: 0,
                                   max: 5000,
                                   divisions: 10,
-                                  labels: RangeLabels('\${_activeFilters.budget.start.round()}', '\${_activeFilters.budget.end.round()}'),
+                                  labels: RangeLabels('\$${_activeFilters.budget.start.round()}', '\$${_activeFilters.budget.end.round()}'),
                                   onChanged: (values) => setModalState(() => _activeFilters.budget = values),
                                 ),
                                 const SizedBox(height: 20),
                                 
-                                // Offer Count Filter
                                 const Text("Number of Offers", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                                 Wrap(
                                   spacing: 8.0,
                                   children: OfferRange.values.map((range) {
+                                    final text = range.toString().split('.').last
+                                        .replaceAll('from', '').replaceAll('to', '-').replaceAll('lessThan', '< ').replaceAll('moreThan', '> ');
                                     return ChoiceChip(
-                                      label: Text(range.toString().split('.').last.replaceAll('from', '').replaceAll('to', '-') + (range == OfferRange.lessThan5 ? ' offers' : '')),
+                                      label: Text(text),
                                       selected: _activeFilters.offerRange == range,
                                       onSelected: (selected) {
                                         if(selected) setModalState(() => _activeFilters.offerRange = range);
@@ -245,13 +239,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // Hiring Rate Filter (Demonstration)
                                 const Text("Hiring Rate", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
                                 Wrap(
                                   spacing: 8.0,
                                   children: HiringRate.values.map((rate) {
+                                    final text = rate.toString().split('.').last.replaceAll('moreThan', '> ') + '%';
                                     return ChoiceChip(
-                                      label: Text(rate.toString().split('.').last.replaceAll('moreThan', '> ') + '%'),
+                                      label: Text(text),
                                       selected: _activeFilters.hiringRate == rate,
                                       onSelected: (selected) {
                                         if(selected) setModalState(() => _activeFilters.hiringRate = rate);
@@ -262,7 +256,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               ],
                             ),
                           ),
-                          // Apply Button
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: SizedBox(
@@ -307,15 +300,14 @@ class _MyHomePageState extends State<MyHomePage> {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withAlpha((0.5 * 255).round()),
-                border: Border(bottom: BorderSide(color: Colors.white.withAlpha((0.2 * 255).round()))),
+                color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+                border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.2))),
               ),
               child: AppBar(
                 title: const Text('Mostaql Job Finder'),
                 actions: [
-                  // --- NEW: Filter Button ---
                   IconButton(
-                    icon: Icon(_activeFilters.isAnyFilterActive ? Icons.filter_list : Icons.filter_list_off),
+                    icon: Icon(_activeFilters.isAnyFilterActive ? Icons.filter_alt : Icons.filter_alt_off_outlined),
                     onPressed: _showFilterSheet,
                   ),
                   IconButton(
@@ -341,30 +333,48 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [Colors.blueGrey.shade900, Colors.black]
-                : [Colors.lightBlue.shade100, Colors.blue.shade300],
+      body: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDarkMode
+                    ? [Colors.blueGrey.shade900, Colors.black]
+                    : [Colors.lightBlue.shade100, Colors.blue.shade300],
+              ),
+            ),
+            child: RefreshIndicator(
+              onRefresh: () => _fetchJobs(category: _selectedCategory),
+              child: _isLoading
+                  ? _buildShimmerList()
+                  : _filteredJobs.isEmpty 
+                      ? const Center(child: Text("No jobs found with these criteria.", style: TextStyle(fontSize: 18)))
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(top: 130, bottom: 20),
+                          itemCount: _filteredJobs.length,
+                          itemBuilder: (context, index) {
+                            return JobCard(job: _filteredJobs[index]);
+                          },
+                        ),
+            ),
           ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: () => _fetchJobs(category: _selectedCategory),
-          child: _isLoading
-              ? _buildShimmerList()
-              : _filteredJobs.isEmpty 
-                  ? const Center(child: Text("No jobs found.", style: TextStyle(fontSize: 18)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(top: 130, bottom: 20),
-                      itemCount: _filteredJobs.length,
-                      itemBuilder: (context, index) {
-                        return JobCard(job: _filteredJobs[index]);
-                      },
-                    ),
-        ),
+          if (_isApplyingAdvancedFilters)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text("Applying Advanced Filters...", style: TextStyle(color: Colors.white, fontSize: 16)),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -376,7 +386,7 @@ class _MyHomePageState extends State<MyHomePage> {
         hintText: 'Search for a job...',
         prefixIcon: const Icon(Icons.search, size: 20),
         filled: true,
-        fillColor: theme.cardColor.withAlpha((0.5 * 255).round()),
+        fillColor: theme.cardColor.withOpacity(0.5),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 0),
       ),
@@ -387,7 +397,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: theme.cardColor.withAlpha((0.5 * 255).round()),
+        color: theme.cardColor.withOpacity(0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
@@ -408,8 +418,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildShimmerList() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade500.withAlpha((0.5 * 255).round()),
-      highlightColor: Colors.grey.shade200.withAlpha((0.5 * 255).round()),
+      baseColor: Colors.grey.shade500.withOpacity(0.5),
+      highlightColor: Colors.grey.shade200.withOpacity(0.5),
       child: ListView.builder(
         padding: const EdgeInsets.only(top: 130),
         itemCount: 7,
@@ -419,7 +429,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-// Reusable Job Card Widget (Unchanged)
 class JobCard extends StatelessWidget {
   final Job job;
   const JobCard({super.key, required this.job});
@@ -437,9 +446,9 @@ class JobCard extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: theme.cardColor.withAlpha((0.3 * 255).round()),
+              color: theme.cardColor.withOpacity(0.3),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withAlpha((0.2 * 255).round())),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -464,7 +473,6 @@ class JobCard extends StatelessWidget {
   }
 }
 
-// Shimmer Placeholder for the Job Card (Unchanged)
 class ShimmerJobCard extends StatelessWidget {
   const ShimmerJobCard({super.key});
 
@@ -474,7 +482,7 @@ class ShimmerJobCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha((0.2 * 255).round()),
+        color: Colors.white.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

@@ -1,4 +1,5 @@
-// Enhanced job.dart model with all the fields from the website
+// lib/models/job.dart
+
 class Job {
   final String title;
   final String description;
@@ -19,46 +20,25 @@ class Job {
   String? employerRegistrationDate;
   String? employerHiringRate;
   String? employerOpenProjects;
-
-  // Helper to parse budget to a double
-  double? get parsedBudget {
-    if (budget == null || budget!.isEmpty) return null;
-    // Remove currency symbols and commas, then parse
-    final cleanBudget = budget!.replaceAll(RegExp(r'[^\d.]'), '');
-    return double.tryParse(cleanBudget);
-  }
-
-  // Helper to parse hiring rate to a double (percentage)
-  double? get parsedEmployerHiringRate {
-    if (employerHiringRate == null || employerHiringRate!.isEmpty) return null;
-    // Remove percentage sign and parse
-    final cleanRate = employerHiringRate!.replaceAll('%', '');
-    return double.tryParse(cleanRate);
-  }
   String? employerOngoingCommunications;
   String? employerProjectsInProgress;
-  
-  // Additional fields that might be available
-  String? projectType;
-  String? location;
-  String? applicationDeadline;
-  List<String>? attachments;
-  String? clientRating;
-  String? clientCountry;
-  String? clientVerificationStatus;
-  int? clientTotalProjects;
-  int? clientCompletedProjects;
-  String? clientLastSeen;
-  String? projectCategory;
-  String? projectSubcategory;
-  bool? isUrgent;
-  bool? isFeatured;
-  String? paymentMethod;
-  String? deliveryMethod;
-  List<String>? requirements;
-  String? workType; // Remote, on-site, hybrid
-  String? experienceLevel;
-  String? portfolioRequired;
+
+  // --- NEW: Helper getters for filtering ---
+
+  // Parses the budget string (e.g., "$25.00 - $50.00") into an average number.
+  double? get parsedBudget {
+    if (budget == null || budget!.isEmpty) return null;
+    final numbers = RegExp(r'(\d+\.?\d*)').allMatches(budget!).map((m) => double.tryParse(m.group(1) ?? ''));
+    if (numbers.isEmpty) return null;
+    return numbers.where((n) => n != null).map((n) => n!).reduce((a, b) => a + b) / numbers.length;
+  }
+
+  // Parses the hiring rate string (e.g., "95.00%") into a number.
+  double? get parsedEmployerHiringRate {
+    if (employerHiringRate == null || employerHiringRate!.isEmpty) return null;
+    final cleanRate = employerHiringRate!.replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(cleanRate);
+  }
 
   Job({
     required this.title,
@@ -78,26 +58,6 @@ class Job {
     this.employerOpenProjects,
     this.employerOngoingCommunications,
     this.employerProjectsInProgress,
-    this.projectType,
-    this.location,
-    this.applicationDeadline,
-    this.attachments,
-    this.clientRating,
-    this.clientCountry,
-    this.clientVerificationStatus,
-    this.clientTotalProjects,
-    this.clientCompletedProjects,
-    this.clientLastSeen,
-    this.projectCategory,
-    this.projectSubcategory,
-    this.isUrgent,
-    this.isFeatured,
-    this.paymentMethod,
-    this.deliveryMethod,
-    this.requirements,
-    this.workType,
-    this.experienceLevel,
-    this.portfolioRequired,
   });
 
   Job copyWith({
@@ -117,27 +77,7 @@ class Job {
     String? employerHiringRate,
     String? employerOpenProjects,
     String? employerOngoingCommunications,
-    String? employerProjectsInProgress,   
-    String? projectType,
-    String? location,
-    String? applicationDeadline,
-    List<String>? attachments,
-    String? clientRating,
-    String? clientCountry,
-    String? clientVerificationStatus,
-    int? clientTotalProjects,
-    int? clientCompletedProjects,
-    String? clientLastSeen,
-    String? projectCategory,
-    String? projectSubcategory,
-    bool? isUrgent,
-    bool? isFeatured,
-    String? paymentMethod,
-    String? deliveryMethod,
-    List<String>? requirements,
-    String? workType,
-    String? experienceLevel,
-    String? portfolioRequired,
+    String? employerProjectsInProgress,
   }) {
     return Job(
       title: title ?? this.title,
@@ -157,26 +97,6 @@ class Job {
       employerOpenProjects: employerOpenProjects ?? this.employerOpenProjects,
       employerOngoingCommunications: employerOngoingCommunications ?? this.employerOngoingCommunications,
       employerProjectsInProgress: employerProjectsInProgress ?? this.employerProjectsInProgress,
-      projectType: projectType ?? this.projectType,
-      location: location ?? this.location,
-      applicationDeadline: applicationDeadline ?? this.applicationDeadline,
-      attachments: attachments ?? this.attachments,
-      clientRating: clientRating ?? this.clientRating,
-      clientCountry: clientCountry ?? this.clientCountry,
-      clientVerificationStatus: clientVerificationStatus ?? this.clientVerificationStatus,
-      clientTotalProjects: clientTotalProjects ?? this.clientTotalProjects,
-      clientCompletedProjects: clientCompletedProjects ?? this.clientCompletedProjects,
-      clientLastSeen: clientLastSeen ?? this.clientLastSeen,
-      projectCategory: projectCategory ?? this.projectCategory,
-      projectSubcategory: projectSubcategory ?? this.projectSubcategory,
-      isUrgent: isUrgent ?? this.isUrgent,
-      isFeatured: isFeatured ?? this.isFeatured,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      deliveryMethod: deliveryMethod ?? this.deliveryMethod,
-      requirements: requirements ?? this.requirements,
-      workType: workType ?? this.workType,
-      experienceLevel: experienceLevel ?? this.experienceLevel,
-      portfolioRequired: portfolioRequired ?? this.portfolioRequired,
     );
   }
 }
