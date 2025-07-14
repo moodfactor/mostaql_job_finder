@@ -1,4 +1,5 @@
-// Enhanced scraping service to capture all job details like the website
+// lib/services/scraping_service.dart
+
 import 'package:html/parser.dart' show parse;
 import 'package:http/http.dart' as http;
 import '../models/job.dart';
@@ -26,20 +27,16 @@ class ScrapingService {
     if (response.statusCode == 200) {
       final document = parse(response.body);
       final jobElements = document.querySelectorAll('tbody > tr');
-
       List<Job> jobs = [];
       for (var element in jobElements) {
         final titleElement = element.querySelector('h2 > a');
         final title = titleElement?.text.trim() ?? '';
         final jobUrl = titleElement?.attributes['href'] ?? '';
         final description = element.querySelector('p')?.text.trim() ?? '';
-        final author =
-            element.querySelector('td > a.user-card-name')?.text.trim() ?? '';
+        final author = element.querySelector('td > a.user-card-name')?.text.trim() ?? '';
         final postTime = element.querySelector('time')?.text.trim() ?? '';
-        final offerCountString =
-            element.querySelector('td > div > span')?.text.trim() ?? '0';
+        final offerCountString = element.querySelector('td > div > span')?.text.trim() ?? '0';
         final offerCount = int.tryParse(offerCountString.split(' ')[0]) ?? 0;
-
         jobs.add(Job(
           title: title,
           description: description,
@@ -55,121 +52,110 @@ class ScrapingService {
     }
   }
 
-  /// Fetches all details from the job page, based on the provided screenshots.
-  Future<Job> fetchJobDetails(String jobUrl) async {
-    final response = await http.get(Uri.parse(jobUrl));
+  /// More robustly fetches all details from the job page.
 
-    if (response.statusCode == 200) {
-      final document = parse(response.body);
+Future<Job> fetchJobDetails(String jobUrl) async {
+  final response = await http.get(Uri.parse(jobUrl));
+  if (response.statusCode != 200) {
+    throw Exception('Failed to load job details.');
+  }
 
-      // --- Main Project Details (Right Side) ---
-      final title = document.querySelector('h1.project-title')?.text.trim() ?? '';
+  final document = parse(response.body);
 
-      // This selector grabs the entire description block, preserving all text and structure.
-      final descriptionContainer = document.querySelector('div.project-description-card > .card-body');
-      final description = descriptionContainer?.text.trim().replaceAll(RegExp(r'\s+\n'), '\n\n') ?? '';
+  final projectDetailsCard = document.querySelector('div.project-details-card');
+  final employerCard = document.querySelector('div.profile-card');
 
-      // --- Project Card (بطاقة المشروع - Left Sidebar) ---
-      String? status;
-      String? postTime;
-      String? budget;
-      String? executionDuration;
-      
-      final projectDetailsItems = document.querySelectorAll('div.project-details-card__meta-item');
-      for (var item in projectDetailsItems) {
-        final label = item.querySelector('.project-details-card__meta-item-label')?.text.trim();
-        final value = item.querySelector('.project-details-card__meta-item-value')?.text.trim();
+  final title = document.querySelector('h1')?.text.trim() ?? '';
 
-        if (value == null) continue;
+  // Get description
+  String description = '';
+  final descElement = document.querySelector('.project-description-card .card-body') ?? 
+                     document.querySelector('.project-description');
+  if (descElement != null) {
+    description = descElement.text.trim();
+  }
 
-        switch (label) {
-          case 'حالة المشروع':
-            status = item.text.trim(); // Get full text including the status chip
-            break;
-          case 'تاريخ النشر':
-            postTime = value;
-            break;
-          case 'الميزانية':
-            budget = value;
-            break;
-          case 'مدة التنفيذ':
-            executionDuration = value;
-            break;
-        }
-      }
-      // The green status chip at the top is another place to find the status.
-      status ??= document.querySelector('.project-details-card__status bdi')?.text.trim();
+  // Extract project details with broader search
+  String? status, postTime, budget, executionDuration;
+  
+  // Search entire page for project details
+  final allText = document.body?.text ?? '';
+  
+  // Extract status
+  if (allText.contains('مفتوح')) status = 'مفتوح';
+  else if (allText.contains('مغلق')) status = 'مغلق';
+  
+  // Extract budget
+  final budgetMatch = RegExp(r'(\d+)\s*(ريال|دولار|\$)').firstMatch(allText);
+  if (budgetMatch != null) {
+    budget = '${budgetMatch.group(1)} ${budgetMatch.group(2)}';
+  }
+  
+  // Extract duration
+  final durationMatch = RegExp(r'(\d+)\s*(يوم|أسبوع|شهر)').firstMatch(allText);
+  if (durationMatch != null) {
+    executionDuration = '${durationMatch.group(1)} ${durationMatch.group(2)}';
+  }
 
-
-      // --- Skills (المهارات) ---
-      final skills = document.querySelectorAll('ul.skills__list > li.skills__item > a').map((e) => e.text.trim()).toList();
-      
-      // --- Employer Card (صاحب المشروع - Left Sidebar) ---
-      final employerCard = document.querySelector('div.profile-card');
-      final employerName = employerCard?.querySelector('h5.profile-card__title > a')?.text.trim();
-      final employerProfession = employerCard?.querySelector('span.profile-card__specialization')?.text.trim();
-      final author = employerName ?? '';
-
-      // --- Employer Statistics ---
-      String? employerRegistrationDate;
-      String? employerHiringRate;
-      String? employerOpenProjects;
-      String? employerProjectsInProgress; // For 'مشاريع قيد التنفيذ'
-      String? employerOngoingCommunications;
-      
-      final employerMetaItems = employerCard?.querySelectorAll('.profile-card__meta > div');
-      if (employerMetaItems != null) {
-          for(var item in employerMetaItems) {
-              // Using text query selectors for robustness against class changes
-              final label = item.querySelector('.profile-card__meta-key')?.text.trim();
-              final value = item.querySelector('.profile-card__meta-value')?.text.trim();
-
-              if (value == null) continue;
-              
-              switch (label) {
-                case 'تاريخ التسجيل':
-                  employerRegistrationDate = value;
-                  break;
-                case 'معدل التوظيف':
-                  // The hiring rate is inside a nested div, so we get the parent text
-                  employerHiringRate = label != null ? item.text.replaceAll(label, '').trim() : item.text.trim();
-                  break;
-                case 'المشاريع المفتوحة':
-                  employerOpenProjects = value;
-                  break;
-                case 'مشاريع قيد التنفيذ':
-                  employerProjectsInProgress = value;
-                  break;
-                case 'التواصلات الجارية':
-                  employerOngoingCommunications = value;
-                  break;
-              }
-          }
-      }
-
-      // We use 0 for offerCount as it's not present on the details page.
-      // The value from the list page will be preserved by the `copyWith` method.
-      return Job(
-        title: title,
-        description: description,
-        author: author,
-        postTime: postTime ?? '',
-        offerCount: 0, // Not available on this page, will be kept from initial job object
-        url: jobUrl,
-        status: status,
-        budget: budget,
-        executionDuration: executionDuration,
-        skills: skills.isNotEmpty ? skills : null,
-        employerName: employerName,
-        employerProfession: employerProfession,
-        employerRegistrationDate: employerRegistrationDate,
-        employerHiringRate: employerHiringRate,
-        employerOpenProjects: employerOpenProjects,
-        employerProjectsInProgress: employerProjectsInProgress,
-        employerOngoingCommunications: employerOngoingCommunications,
-      );
-    } else {
-      throw Exception('Failed to load job details. Status code: ${response.statusCode}');
+  // Extract skills with multiple selectors
+  List<String> skills = [];
+  final skillSelectors = [
+    'ul.skills__list > li.skills__item > a',
+    '.skills a',
+    '[class*="skill"] a',
+    '.tag',
+    '.badge'
+  ];
+  
+  for (String selector in skillSelectors) {
+    final skillElements = document.querySelectorAll(selector);
+    if (skillElements.isNotEmpty) {
+      skills = skillElements.map((e) => e.text.trim()).where((s) => s.isNotEmpty).toList();
+      if (skills.isNotEmpty) break;
     }
   }
+
+  String? employerName, employerProfession, employerRegistrationDate,
+      employerHiringRate, employerOpenProjects, employerProjectsInProgress,
+      employerOngoingCommunications;
+
+  if (employerCard != null) {
+    employerName = employerCard.querySelector('h5.profile-card__title a')?.text.trim();
+    employerProfession = employerCard.querySelector('span.profile-card__specialization')?.text.trim();
+
+    final metaItems = employerCard.querySelectorAll('.profile-card__meta > div');
+    for (var item in metaItems) {
+      final label = item.querySelector('.profile-card__meta-key')?.text.trim();
+      final value = item.querySelector('.profile-card__meta-value')?.text.trim();
+      if (label != null && value != null) {
+        if (label.contains('تاريخ التسجيل')) employerRegistrationDate = value;
+        if (label.contains('معدل توظيف')) employerHiringRate = value;
+        if (label.contains('المشاريع المفتوحة')) employerOpenProjects = value;
+        if (label.contains('مشاريع قيد التنفيذ')) employerProjectsInProgress = value;
+        if (label.contains('التواصلات الجارية')) employerOngoingCommunications = value;
+      }
+    }
+  }
+
+  return Job(
+    title: title,
+    description: description,
+    author: employerName ?? '',
+    postTime: postTime ?? '',
+    offerCount: 0,
+    url: jobUrl,
+    status: status,
+    budget: budget,
+    executionDuration: executionDuration,
+    skills: skills.isNotEmpty ? skills : null,
+    employerName: employerName,
+    employerProfession: employerProfession,
+    employerRegistrationDate: employerRegistrationDate,
+    employerHiringRate: employerHiringRate,
+    employerOpenProjects: employerOpenProjects,
+    employerProjectsInProgress: employerProjectsInProgress,
+    employerOngoingCommunications: employerOngoingCommunications,
+  );
+}
+
 }

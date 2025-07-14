@@ -1,3 +1,9 @@
+// job_details_page.dart
+// This file defines the JobDetailsPage widget for displaying detailed information about a job. 
+// It fetches job details from the ScrapingService and displays them in a structured format.
+// The page includes sections for project details, employer information, and a proposal submission section.
+// It also handles loading states and errors gracefully, providing a user-friendly experience.
+
 import 'package:flutter/material.dart';
 import 'package:mostaql_job_finder/models/job.dart';
 import 'package:mostaql_job_finder/services/scraping_service.dart';
@@ -26,22 +32,27 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   }
 
   Future<void> _fetchJobDetails() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
+    try {
       final detailedJob = await _scrapingService.fetchJobDetails(widget.job.url);
 
       if (mounted) {
+        print('Original description length: ${_jobDetails.description.length}');
+        print('Detailed description length: ${detailedJob.description.length}');
+        print('Using description: ${detailedJob.description.isNotEmpty ? "detailed" : "original"}');
+        
         setState(() {
+          // Use copyWith to merge new details into the existing job object
           _jobDetails = _jobDetails.copyWith(
+            // Only update fields that were successfully scraped
             title: detailedJob.title.isNotEmpty ? detailedJob.title : _jobDetails.title,
             description: detailedJob.description.isNotEmpty ? detailedJob.description : _jobDetails.description,
             author: detailedJob.author.isNotEmpty ? detailedJob.author : _jobDetails.author,
             postTime: detailedJob.postTime.isNotEmpty ? detailedJob.postTime : _jobDetails.postTime,
-            offerCount: detailedJob.offerCount > 0 ? detailedJob.offerCount : _jobDetails.offerCount,
             status: detailedJob.status,
             budget: detailedJob.budget,
             executionDuration: detailedJob.executionDuration,
@@ -57,7 +68,6 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         });
       }
     } catch (e) {
-      print('Error fetching job details: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -66,6 +76,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       }
     }
   }
+
 
   Future<void> _launchURL(String url) async {
     try {
@@ -138,11 +149,11 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildProjectDetailRow('حالة المشروع', _jobDetails.status),
-            _buildProjectDetailRow('الميزانية', _jobDetails.budget),
-            _buildProjectDetailRow('مدة التنفيذ', _jobDetails.executionDuration),
-            _buildProjectDetailRow('عدد العروض', '${_jobDetails.offerCount}'),
-            _buildProjectDetailRow('تاريخ النشر', _jobDetails.postTime),
+            _buildDetailRow('حالة المشروع', _jobDetails.status),
+            _buildDetailRow('الميزانية', _jobDetails.budget),
+            _buildDetailRow('مدة التنفيذ', _jobDetails.executionDuration),
+            _buildDetailRow('عدد العروض', '${_jobDetails.offerCount}'),
+            _buildDetailRow('تاريخ النشر', _jobDetails.postTime),
             
             if (_jobDetails.skills != null && _jobDetails.skills!.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -180,29 +191,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     );
   }
 
-  Widget _buildProjectDetailRow(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Flexible(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.left,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildEmployerCard() {
     if (_jobDetails.employerName == null) return const SizedBox.shrink();
@@ -264,36 +253,17 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             const SizedBox(height: 16),
             
             // Employer statistics
-            _buildEmployerStatRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate),
-            _buildEmployerStatRow('معدل التوظيف', _jobDetails.employerHiringRate),
-            _buildEmployerStatRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects),
-            _buildEmployerStatRow('التواصلات الجارية', _jobDetails.employerOngoingCommunications),
+            _buildDetailRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate),
+            _buildDetailRow('معدل التوظيف', _jobDetails.employerHiringRate),
+            _buildDetailRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects),
+            _buildDetailRow('التواصلات الجارية', _jobDetails.employerOngoingCommunications),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildEmployerStatRow(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
-      ),
-    );
-  }
+  
 
   Widget _buildJobDescription() {
     return Card(
@@ -385,6 +355,67 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     );
   }
 
+    // --- WIDGETS ---
+
+  // Helper to show placeholder text for missing data
+  Widget _buildDetailRow(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value ?? 'غير محدد', // Show placeholder if value is null
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, color: value == null ? Colors.grey : null),
+              textAlign: TextAlign.left,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({required String title, required List<Widget> children}) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).cardColor.withOpacity(0.5),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const Divider(height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  // --- WIDGET BUILDERS ---
+
+
+  /// Creates a styled chip for displaying a skill.
+  Widget _buildSkillChip(String skill) {
+    return Chip(
+      label: Text(skill),
+      backgroundColor: Colors.blue.withOpacity(0.8),
+      labelStyle: const TextStyle(color: Colors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    );
+  }
+
+  /// The main build method that constructs the entire page UI.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -394,13 +425,10 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          // Refresh button is disabled during the loading state.
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchJobDetails,
-          ),
-          IconButton(
-            icon: const Icon(Icons.open_in_browser),
-            onPressed: () => _launchURL(_jobDetails.url),
+            onPressed: _isLoading ? null : _fetchJobDetails,
           ),
         ],
       ),
@@ -408,38 +436,141 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.titleMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchJobDetails,
-                        child: const Text('إعادة المحاولة'),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red[300], size: 60),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('إعادة المحاولة'),
+                          onPressed: _fetchJobDetails,
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildJobDescription(),
-                      _buildProjectCard(),
-                      _buildEmployerCard(),
-                      _buildSubmitProposalSection(),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      children: [
+                        // --- Card for Project Description ---
+                        _buildCard(
+                          title: 'تفاصيل المشروع',
+                          children: [
+                            Text(
+                              _jobDetails.title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            SelectableText(
+                              _jobDetails.description,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(height: 1.5, fontSize: 16),
+                              textAlign: TextAlign.right,
+                              textDirection: TextDirection.rtl,
+                              minLines: 1,
+                              maxLines: null,
+                            ),
+                          ],
+                        ),
+
+                        // --- Card for Project Info ---
+                        _buildCard(
+                          title: 'بطاقة المشروع',
+                          children: [
+                            _buildDetailRow('حالة المشروع', _jobDetails.status),
+                            _buildDetailRow('الميزانية', _jobDetails.budget),
+                            _buildDetailRow('مدة التنفيذ', _jobDetails.executionDuration),
+                            _buildDetailRow('تاريخ النشر', _jobDetails.postTime),
+                            _buildDetailRow('عدد العروض', '${_jobDetails.offerCount}'),
+                          ],
+                        ),
+                        
+                        // --- Card for Skills (only shows if skills exist) ---
+                        if (_jobDetails.skills != null && _jobDetails.skills!.isNotEmpty)
+                          _buildCard(
+                            title: 'المهارات المطلوبة',
+                            children: [
+                              Wrap(
+                                spacing: 8.0,
+                                runSpacing: 8.0,
+                                children: _jobDetails.skills!.map(_buildSkillChip).toList(),
+                              )
+                            ],
+                          ),
+
+                        // --- Card for Employer (only shows if employer details exist) ---
+                        if (_jobDetails.employerName != null)
+                          _buildCard(
+                            title: 'صاحب المشروع',
+                            children: [
+                              _buildDetailRow('الاسم', _jobDetails.employerName),
+                              _buildDetailRow('التخصص', _jobDetails.employerProfession),
+                              _buildDetailRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate),
+                              _buildDetailRow('معدل التوظيف', _jobDetails.employerHiringRate),
+                              _buildDetailRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects),
+                              _buildDetailRow('التواصلات الجارية', _jobDetails.employerOngoingCommunications),
+                            ],
+                          ),
+                          
+                        // --- Card for Submitting a Proposal ---
+                        _buildCard(
+                          title: 'تقدم للمشروع',
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: () => _launchURL(_jobDetails.url),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    child: const Text('حساب جديد'),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _launchURL(_jobDetails.url),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Colors.blue),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    child: const Text('دخول'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Center(
+                              child: Text(
+                                'لا يوجد عروض بعد.',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
     );
   }
-}
+} 
