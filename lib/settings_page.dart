@@ -21,7 +21,7 @@ class SettingsPage extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
+                color: Theme.of(context).appBarTheme.backgroundColor?.withAlpha((0.3 * 255).round()) ?? Colors.blue.withAlpha((0.3 * 255).round()),
               ),
             ),
           ),

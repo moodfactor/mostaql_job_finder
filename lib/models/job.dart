@@ -19,6 +19,22 @@ class Job {
   String? employerRegistrationDate;
   String? employerHiringRate;
   String? employerOpenProjects;
+
+  // Helper to parse budget to a double
+  double? get parsedBudget {
+    if (budget == null || budget!.isEmpty) return null;
+    // Remove currency symbols and commas, then parse
+    final cleanBudget = budget!.replaceAll(RegExp(r'[^\d.]'), '');
+    return double.tryParse(cleanBudget);
+  }
+
+  // Helper to parse hiring rate to a double (percentage)
+  double? get parsedEmployerHiringRate {
+    if (employerHiringRate == null || employerHiringRate!.isEmpty) return null;
+    // Remove percentage sign and parse
+    final cleanRate = employerHiringRate!.replaceAll('%', '');
+    return double.tryParse(cleanRate);
+  }
   String? employerOngoingCommunications;
   String? employerProjectsInProgress;
   

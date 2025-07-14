@@ -16,7 +16,7 @@ void main() {
     expect(job.employerName, isNotNull);
     expect(job.employerProfession, isNotNull);
     expect(job.employerRegistrationDate, isNotNull);
-    expect(job.employerHiringRate, isNotNull);
+    expect(job.parsedEmployerHiringRate, isNotNull);
     expect(job.employerOpenProjects, isNotNull);
     expect(job.employerProjectsInProgress, isNotNull);
     expect(job.employerOngoingCommunications, isNotNull);

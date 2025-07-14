@@ -94,8 +94,8 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withOpacity(0.5),
-                border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.2))),
+                color: theme.scaffoldBackgroundColor.withAlpha((0.5 * 255).round()),
+                border: Border(bottom: BorderSide(color: Colors.white.withAlpha((0.2 * 255).round()))),
               ),
             ),
           ),
@@ -156,9 +156,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(0.3),
+            color: theme.cardColor.withAlpha((0.3 * 255).round()),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withAlpha((0.2 * 255).round())),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +189,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (icon != null) Icon(icon, size: 18, color: theme.iconTheme.color?.withOpacity(0.7)),
+          if (icon != null) Icon(icon, size: 18, color: theme.iconTheme.color?.withAlpha((0.7 * 255).round())),
           if (icon != null) const SizedBox(width: 12),
           Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           const Spacer(),
@@ -197,7 +197,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             child: Text(
               value?.trim() ?? 'غير محدد',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: value == null ? theme.textTheme.bodyLarge?.color?.withOpacity(0.5) : null,
+                color: value == null ? theme.textTheme.bodyLarge?.color?.withAlpha((0.5 * 255).round()) : null,
               ),
               textAlign: TextAlign.left,
             ),
@@ -217,7 +217,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withAlpha((0.2 * 255).round()),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color, width: 1),
       ),
@@ -267,7 +267,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           runSpacing: 10,
           children: _jobDetails.skills!.map((skill) => Chip(
             label: Text(skill),
-            backgroundColor: Colors.blue.withOpacity(0.8),
+            backgroundColor: Colors.blue.withAlpha((0.8 * 255).round()),
             labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           )).toList(),
         )
@@ -286,7 +286,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         _buildDetailRow('الاسم', _jobDetails.employerName, icon: Icons.person_outline),
         _buildDetailRow('التخصص', _jobDetails.employerProfession, icon: Icons.work_outline),
         _buildDetailRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate, icon: Icons.event_available_outlined),
-        _buildDetailRow('معدل التوظيف', _jobDetails.employerHiringRate, icon: Icons.star_border_outlined),
+        _buildDetailRow('معدل التوظيف', _jobDetails.parsedEmployerHiringRate?.toStringAsFixed(0) ?? 'غير محدد', icon: Icons.star_border_outlined),
         _buildDetailRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects, icon: Icons.folder_open_outlined),
       ],
     );
