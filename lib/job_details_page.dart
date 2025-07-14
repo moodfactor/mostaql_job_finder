@@ -9,6 +9,8 @@ import 'package:mostaql_job_finder/models/job.dart';
 import 'package:mostaql_job_finder/services/scraping_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'dart:ui'; // Import for ImageFilter
+
 class JobDetailsPage extends StatefulWidget {
   final Job job;
 
@@ -382,20 +384,31 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget _buildCard({required String title, required List<Widget> children}) {
     return Card(
       elevation: 0,
-      color: Theme.of(context).cardColor.withOpacity(0.5),
+      color: Colors.transparent, // Make card transparent to show blur effect
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor.withOpacity(0.3), // Adjust opacity for glass effect
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
             ),
-            const Divider(height: 24),
-            ...children,
-          ],
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Divider(height: 24),
+                ...children,
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -420,9 +433,21 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           _jobDetails.title.isNotEmpty ? _jobDetails.title : "تفاصيل المشروع",
           overflow: TextOverflow.ellipsis,
+        ),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
+              ),
+            ),
+          ),
         ),
         actions: [
           // Refresh button is disabled during the loading state.

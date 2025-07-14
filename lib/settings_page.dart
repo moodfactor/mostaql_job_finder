@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:mostaql_job_finder/main.dart';
+import 'dart:ui'; // Import for ImageFilter
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -12,7 +13,19 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: const Text('Settings'),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
+              ),
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -12,6 +12,7 @@ import 'package:mostaql_job_finder/services/scraping_service.dart';
 import 'package:mostaql_job_finder/settings_page.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui'; // Import for ImageFilter
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
@@ -118,17 +119,29 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: _isSearching
             ? TextField(
                 onChanged: _filterJobs,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Search...',
                   border: InputBorder.none,
                   hintStyle: TextStyle(color: Colors.white70),
                 ),
-                style: TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.white),
               )
             : const Text('Mostaql Job Finder'),
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).appBarTheme.backgroundColor?.withOpacity(0.3) ?? Colors.blue.withOpacity(0.3),
+              ),
+            ),
+          ),
+        ),
         actions: [
           _isSearching
               ? IconButton(
@@ -161,24 +174,36 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: DropdownButton<String>(
-              value: _selectedCategory,
-              hint: const Text('Select Category', style: TextStyle(color: Colors.white)),
-              isExpanded: true,
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedCategory = newValue;
-                  _fetchJobs(category: _selectedCategory);
-                });
-              },
-              items: _categories.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: DropdownButton<String>(
+                  dropdownColor: Theme.of(context).cardColor.withOpacity(0.8),
+                  value: _selectedCategory,
+                  hint: const Text('Select Category', style: TextStyle(color: Colors.white)),
+                  isExpanded: true,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedCategory = newValue;
+                      _fetchJobs(category: _selectedCategory);
+                    });
+                  },
+                  items: _categories.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ),
         ),
@@ -191,57 +216,45 @@ class _MyHomePageState extends State<MyHomePage> {
                 itemCount: 10,
                 itemBuilder: (context, index) {
                   return Card(
-                    elevation: 4,
+                    elevation: 0,
+                    color: Colors.transparent, // Make card transparent to show blur effect
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 18,
-                            color: Colors.white,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor.withOpacity(0.3), // Adjust opacity for glass effect
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withOpacity(0.2)),
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            height: 16,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          padding: const EdgeInsets.all(16.0),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 100,
-                                height: 16,
-                                color: Colors.white,
+                              SizedBox(width: double.infinity, height: 18, child: ColoredBox(color: Colors.white)),
+                              SizedBox(height: 8),
+                              SizedBox(width: double.infinity, height: 16, child: ColoredBox(color: Colors.white)),
+                              SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SizedBox(width: 100, height: 16, child: ColoredBox(color: Colors.white)),
+                                  SizedBox(width: 50, height: 16, child: ColoredBox(color: Colors.white)),
+                                ],
                               ),
-                              Container(
-                                width: 50,
-                                height: 16,
-                                color: Colors.white,
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  SizedBox(width: 70, height: 16, child: ColoredBox(color: Colors.white)),
+                                  SizedBox(width: 80, height: 36, child: ColoredBox(color: Colors.white)),
+                                ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                width: 70,
-                                height: 16,
-                                color: Colors.white,
-                              ),
-                              Container(
-                                width: 80,
-                                height: 36,
-                                color: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   );
@@ -264,46 +277,58 @@ class _MyHomePageState extends State<MyHomePage> {
                       );
                     },
                     child: Card(
-                      elevation: 4,
+                      elevation: 0,
+                      color: Colors.transparent, // Make card transparent to show blur effect
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              job.title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor.withOpacity(0.3), // Adjust opacity for glass effect
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white.withOpacity(0.2)),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              job.description,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('By: ${job.author}'),
-                                Text(job.postTime),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${job.offerCount} offers'),
-                                ElevatedButton(
-                                  onPressed: () => _launchURL(job.url),
-                                  child: const Text('View Job'),
+                                Text(
+                                  job.title,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  job.description,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('By: ${job.author}'),
+                                    Text(job.postTime),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${job.offerCount} offers'),
+                                    ElevatedButton(
+                                      onPressed: () => _launchURL(job.url),
+                                      child: const Text('View Job'),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
