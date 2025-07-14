@@ -105,6 +105,10 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             icon: const Icon(Icons.refresh),
             onPressed: _isLoading ? null : _fetchJobDetails,
           ),
+          IconButton(
+            icon: const Icon(Icons.open_in_browser),
+            onPressed: () => _launchURL(_jobDetails.url),
+          ),
         ],
       ),
       body: Container(
