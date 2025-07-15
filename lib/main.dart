@@ -220,8 +220,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   max: 2000,
                                   divisions: 40,
                                   labels: RangeLabels(
-                                    '\${_activeFilters.budget.start.round()}',
-                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\${_activeFilters.budget.end.round()}'
+                                    '\$${_activeFilters.budget.start.round()}',
+                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\$${_activeFilters.budget.end.round()}'
                                   ),
                                   onChanged: (values) => setModalState(() => _activeFilters.budget = values),
                                 ),
