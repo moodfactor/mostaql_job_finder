@@ -286,7 +286,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         _buildDetailRow('الاسم', _jobDetails.employerName, icon: Icons.person_outline),
         _buildDetailRow('التخصص', _jobDetails.employerProfession, icon: Icons.work_outline),
         _buildDetailRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate, icon: Icons.event_available_outlined),
-        _buildDetailRow('معدل التوظيف', _jobDetails.parsedEmployerHiringRate?.toStringAsFixed(0) ?? 'غير محدد', icon: Icons.star_border_outlined),
+        _buildDetailRow('معدل التوظيف', _jobDetails.parsedEmployerHiringRate != null ? '${_jobDetails.parsedEmployerHiringRate?.toStringAsFixed(0)}%' : 'غير محدد', icon: Icons.star_border_outlined),
         _buildDetailRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects, icon: Icons.folder_open_outlined),
       ],
     );
