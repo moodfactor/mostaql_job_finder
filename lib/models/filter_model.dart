@@ -15,7 +15,7 @@ class JobFilters {
   bool get areAdvancedFiltersActive =>
       hiringRate != HiringRate.any ||
       budget.start != 0 ||
-      budget.end != 5000;
+      budget.end != 2000;
 
   JobFilters({
     this.offerRange = OfferRange.any,

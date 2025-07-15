@@ -155,8 +155,10 @@ class _MyHomePageState extends State<MyHomePage> {
           return false;
         }
 
-        final budgetMatch = job.parsedBudget == null || (job.parsedBudget! >= _activeFilters.budget.start && job.parsedBudget! <= _activeFilters.budget.end);
-        if ((_activeFilters.budget.start != 0 || _activeFilters.budget.end != 5000) && job.parsedBudget == null) {
+        final budgetMatch = job.parsedBudget == null || 
+                            (_activeFilters.budget.end == 2000 ? job.parsedBudget! >= _activeFilters.budget.start : 
+                            (job.parsedBudget! >= _activeFilters.budget.start && job.parsedBudget! <= _activeFilters.budget.end));
+        if ((_activeFilters.budget.start != 0 || _activeFilters.budget.end != 2000) && job.parsedBudget == null) {
           return false;
         }
 
@@ -215,9 +217,12 @@ class _MyHomePageState extends State<MyHomePage> {
                                 RangeSlider(
                                   values: _activeFilters.budget,
                                   min: 0,
-                                  max: 5000,
-                                  divisions: 10,
-                                  labels: RangeLabels('\$${_activeFilters.budget.start.round()}', '\$${_activeFilters.budget.end.round()}'),
+                                  max: 2000,
+                                  divisions: 40,
+                                  labels: RangeLabels(
+                                    '\${_activeFilters.budget.start.round()}',
+                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\${_activeFilters.budget.end.round()}'
+                                  ),
                                   onChanged: (values) => setModalState(() => _activeFilters.budget = values),
                                 ),
                                 const SizedBox(height: 20),
