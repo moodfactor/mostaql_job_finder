@@ -1,6 +1,5 @@
 // settings_page.dart
-// This file defines the SettingsPage widget for managing app settings.     
-
+// This file defines the SettingsPage widget for managing app settings.
 
 import 'package:flutter/material.dart';
 import 'package:mostaql_job_finder/main.dart';
@@ -21,7 +20,11 @@ class SettingsPage extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).appBarTheme.backgroundColor?.withAlpha((0.3 * 255).round()) ?? Colors.blue.withAlpha((0.3 * 255).round()),
+                color:
+                    Theme.of(context).appBarTheme.backgroundColor?.withAlpha(
+                      (0.3 * 255).round(),
+                    ) ??
+                    Colors.blue.withAlpha((0.3 * 255).round()),
               ),
             ),
           ),
@@ -32,10 +35,7 @@ class SettingsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Theme',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Theme', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             ValueListenableBuilder<ThemeMode>(
               valueListenable: themeNotifier,

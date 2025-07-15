@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 
 class ShimmerJobCard extends StatelessWidget {
   const ShimmerJobCard({super.key});
@@ -11,7 +9,7 @@ class ShimmerJobCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withAlpha((255 * 0.2).round()),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -21,7 +19,11 @@ class ShimmerJobCard extends StatelessWidget {
           const SizedBox(height: 12),
           Container(height: 14, width: double.infinity, color: Colors.white),
           const SizedBox(height: 8),
-          Container(height: 14, width: MediaQuery.of(context).size.width * 0.7, color: Colors.white),
+          Container(
+            height: 14,
+            width: MediaQuery.of(context).size.width * 0.7,
+            color: Colors.white,
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

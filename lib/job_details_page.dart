@@ -34,14 +34,24 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       _errorMessage = null;
     });
     try {
-      final detailedJob = await _scrapingService.fetchJobDetails(widget.job.url);
+      final detailedJob = await _scrapingService.fetchJobDetails(
+        widget.job.url,
+      );
       if (mounted) {
         setState(() {
           _jobDetails = _jobDetails.copyWith(
-            title: detailedJob.title.isNotEmpty ? detailedJob.title : _jobDetails.title,
-            description: detailedJob.description.isNotEmpty ? detailedJob.description : _jobDetails.description,
-            author: detailedJob.author.isNotEmpty ? detailedJob.author : _jobDetails.author,
-            postTime: detailedJob.postTime.isNotEmpty ? detailedJob.postTime : _jobDetails.postTime,
+            title: detailedJob.title.isNotEmpty
+                ? detailedJob.title
+                : _jobDetails.title,
+            description: detailedJob.description.isNotEmpty
+                ? detailedJob.description
+                : _jobDetails.description,
+            author: detailedJob.author.isNotEmpty
+                ? detailedJob.author
+                : _jobDetails.author,
+            postTime: detailedJob.postTime.isNotEmpty
+                ? detailedJob.postTime
+                : _jobDetails.postTime,
             status: detailedJob.status,
             budget: detailedJob.budget,
             executionDuration: detailedJob.executionDuration,
@@ -51,7 +61,8 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
             employerRegistrationDate: detailedJob.employerRegistrationDate,
             employerHiringRate: detailedJob.employerHiringRate,
             employerOpenProjects: detailedJob.employerOpenProjects,
-            employerOngoingCommunications: detailedJob.employerOngoingCommunications,
+            employerOngoingCommunications:
+                detailedJob.employerOngoingCommunications,
           );
           _isLoading = false;
         });
@@ -69,7 +80,10 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   Future<void> _launchURL(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not open URL: $url')));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open URL: $url')));
     }
   }
 
@@ -79,23 +93,35 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      extendBodyBehindAppBar: true, // Allows the body to be seen behind the AppBar
+      extendBodyBehindAppBar:
+          true, // Allows the body to be seen behind the AppBar
       appBar: AppBar(
         backgroundColor: Colors.transparent, // Make AppBar transparent
         elevation: 0,
         title: Text(
           _jobDetails.title.isNotEmpty ? _jobDetails.title : "Job Details",
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black87),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
         ),
-        iconTheme: IconThemeData(color: isDarkMode ? Colors.white : Colors.black87),
+        iconTheme: IconThemeData(
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
         flexibleSpace: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withAlpha((0.5 * 255).round()),
-                border: Border(bottom: BorderSide(color: Colors.white.withAlpha((0.2 * 255).round()))),
+                color: theme.scaffoldBackgroundColor.withAlpha(
+                  (0.5 * 255).round(),
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.white.withAlpha((0.2 * 255).round()),
+                  ),
+                ),
               ),
             ),
           ),
@@ -125,28 +151,35 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-                ? _buildErrorWidget()
-                : SafeArea(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Column(
-                        children: [
-                          _buildDescriptionCard(),
-                          _buildProjectInfoCard(),
-                          if (_jobDetails.skills != null && _jobDetails.skills!.isNotEmpty) _buildSkillsCard(),
-                          if (_jobDetails.employerName != null) _buildEmployerCard(),
-                          _buildProposalCard(),
-                        ],
-                      ),
-                    ),
+            ? _buildErrorWidget()
+            : SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Column(
+                    children: [
+                      _buildDescriptionCard(),
+                      _buildProjectInfoCard(),
+                      if (_jobDetails.skills != null &&
+                          _jobDetails.skills!.isNotEmpty)
+                        _buildSkillsCard(),
+                      if (_jobDetails.employerName != null)
+                        _buildEmployerCard(),
+                      _buildProposalCard(),
+                    ],
                   ),
+                ),
+              ),
       ),
     );
   }
 
   // --- WIDGET BUILDER METHODS ---
 
-  Widget _buildGlassCard({required String title, required List<Widget> children, Widget? trailing}) {
+  Widget _buildGlassCard({
+    required String title,
+    required List<Widget> children,
+    Widget? trailing,
+  }) {
     final theme = Theme.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -158,7 +191,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
           decoration: BoxDecoration(
             color: theme.cardColor.withAlpha((0.3 * 255).round()),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withAlpha((0.2 * 255).round())),
+            border: Border.all(
+              color: Colors.white.withAlpha((0.2 * 255).round()),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,7 +203,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                 children: [
                   Text(
                     title,
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (trailing != null) trailing,
                 ],
@@ -189,15 +226,29 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (icon != null) Icon(icon, size: 18, color: theme.iconTheme.color?.withAlpha((0.7 * 255).round())),
+          if (icon != null)
+            Icon(
+              icon,
+              size: 18,
+              color: theme.iconTheme.color?.withAlpha((0.7 * 255).round()),
+            ),
           if (icon != null) const SizedBox(width: 12),
-          Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const Spacer(),
           Flexible(
             child: Text(
               value?.trim() ?? 'غير محدد',
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: value == null ? theme.textTheme.bodyLarge?.color?.withAlpha((0.5 * 255).round()) : null,
+                color: value == null
+                    ? theme.textTheme.bodyLarge?.color?.withAlpha(
+                        (0.5 * 255).round(),
+                      )
+                    : null,
               ),
               textAlign: TextAlign.left,
             ),
@@ -211,9 +262,18 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     if (status == null || status.isEmpty) return const SizedBox.shrink();
     Color color = Colors.grey;
     String text = status;
-    if (status.contains('مفتوح')) { color = Colors.green; text = 'مفتوح'; }
-    if (status.contains('مغلق')) { color = Colors.red; text = 'مغلق'; }
-    if (status.contains('قيد التنفيذ')) { color = Colors.orange; text = 'قيد التنفيذ'; }
+    if (status.contains('مفتوح')) {
+      color = Colors.green;
+      text = 'مفتوح';
+    }
+    if (status.contains('مغلق')) {
+      color = Colors.red;
+      text = 'مغلق';
+    }
+    if (status.contains('قيد التنفيذ')) {
+      color = Colors.orange;
+      text = 'قيد التنفيذ';
+    }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -221,10 +281,17 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color, width: 1),
       ),
-      child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
     );
   }
-  
+
   // --- CARD SECTION WIDGETS ---
 
   Widget _buildDescriptionCard() {
@@ -233,7 +300,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       children: [
         SelectableText(
           _jobDetails.title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         SelectableText(
@@ -250,14 +319,30 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       title: 'بطاقة المشروع',
       trailing: _buildStatusBadge(_jobDetails.status),
       children: [
-        _buildDetailRow('الميزانية', _jobDetails.budget, icon: Icons.attach_money),
-        _buildDetailRow('مدة التنفيذ', _jobDetails.executionDuration, icon: Icons.timer_outlined),
-        _buildDetailRow('تاريخ النشر', _jobDetails.postTime, icon: Icons.calendar_today_outlined),
-        _buildDetailRow('عدد العروض', '${_jobDetails.offerCount}', icon: Icons.group_outlined),
+        _buildDetailRow(
+          'الميزانية',
+          _jobDetails.budget,
+          icon: Icons.attach_money,
+        ),
+        _buildDetailRow(
+          'مدة التنفيذ',
+          _jobDetails.executionDuration,
+          icon: Icons.timer_outlined,
+        ),
+        _buildDetailRow(
+          'تاريخ النشر',
+          _jobDetails.postTime,
+          icon: Icons.calendar_today_outlined,
+        ),
+        _buildDetailRow(
+          'عدد العروض',
+          '${_jobDetails.offerCount}',
+          icon: Icons.group_outlined,
+        ),
       ],
     );
   }
-  
+
   Widget _buildSkillsCard() {
     return _buildGlassCard(
       title: 'المهارات المطلوبة',
@@ -265,12 +350,19 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: _jobDetails.skills!.map((skill) => Chip(
-            label: Text(skill),
-            backgroundColor: Colors.blue.withAlpha((0.8 * 255).round()),
-            labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          )).toList(),
-        )
+          children: _jobDetails.skills!
+              .map(
+                (skill) => Chip(
+                  label: Text(skill),
+                  backgroundColor: Colors.blue.withAlpha((0.8 * 255).round()),
+                  labelStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+              .toList(),
+        ),
       ],
     );
   }
@@ -280,14 +372,39 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
       title: 'صاحب المشروع',
       trailing: CircleAvatar(
         backgroundColor: Colors.blueGrey,
-        child: Text(_jobDetails.employerName?.substring(0, 1).toUpperCase() ?? 'U', style: const TextStyle(fontWeight: FontWeight.bold)),
+        child: Text(
+          _jobDetails.employerName?.substring(0, 1).toUpperCase() ?? 'U',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
       ),
       children: [
-        _buildDetailRow('الاسم', _jobDetails.employerName, icon: Icons.person_outline),
-        _buildDetailRow('التخصص', _jobDetails.employerProfession, icon: Icons.work_outline),
-        _buildDetailRow('تاريخ التسجيل', _jobDetails.employerRegistrationDate, icon: Icons.event_available_outlined),
-        _buildDetailRow('معدل التوظيف', _jobDetails.parsedEmployerHiringRate != null ? '${_jobDetails.parsedEmployerHiringRate?.toStringAsFixed(0)}%' : 'غير محدد', icon: Icons.star_border_outlined),
-        _buildDetailRow('المشاريع المفتوحة', _jobDetails.employerOpenProjects, icon: Icons.folder_open_outlined),
+        _buildDetailRow(
+          'الاسم',
+          _jobDetails.employerName,
+          icon: Icons.person_outline,
+        ),
+        _buildDetailRow(
+          'التخصص',
+          _jobDetails.employerProfession,
+          icon: Icons.work_outline,
+        ),
+        _buildDetailRow(
+          'تاريخ التسجيل',
+          _jobDetails.employerRegistrationDate,
+          icon: Icons.event_available_outlined,
+        ),
+        _buildDetailRow(
+          'معدل التوظيف',
+          _jobDetails.parsedEmployerHiringRate != null
+              ? '${_jobDetails.parsedEmployerHiringRate?.toStringAsFixed(0)}%'
+              : 'غير محدد',
+          icon: Icons.star_border_outlined,
+        ),
+        _buildDetailRow(
+          'المشاريع المفتوحة',
+          _jobDetails.employerOpenProjects,
+          icon: Icons.folder_open_outlined,
+        ),
       ],
     );
   }
@@ -307,7 +424,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                   backgroundColor: Colors.blue.shade400,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -321,7 +440,9 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                   side: BorderSide(color: Colors.blue.shade300),
                   foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),

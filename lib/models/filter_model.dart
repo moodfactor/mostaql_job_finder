@@ -13,9 +13,7 @@ class JobFilters {
 
   // A flag to check if advanced filters (requiring detail scraping) are active.
   bool get areAdvancedFiltersActive =>
-      hiringRate != HiringRate.any ||
-      budget.start != 0 ||
-      budget.end != 2000;
+      hiringRate != HiringRate.any || budget.start != 0 || budget.end != 2000;
 
   JobFilters({
     this.offerRange = OfferRange.any,

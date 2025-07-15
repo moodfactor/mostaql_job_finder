@@ -7,13 +7,13 @@ class Job {
   final String postTime;
   final int offerCount;
   final String url;
-  
+
   // Project details
   String? status;
   String? budget;
   String? executionDuration;
   List<String>? skills;
-  
+
   // Employer information
   String? employerName;
   String? employerProfession;
@@ -28,9 +28,15 @@ class Job {
   // Parses the budget string (e.g., "$25.00 - $50.00") into an average number.
   double? get parsedBudget {
     if (budget == null || budget!.isEmpty) return null;
-    final numbers = RegExp(r'(\d+\.?\d*)').allMatches(budget!).map((m) => double.tryParse(m.group(1) ?? ''));
+    final numbers = RegExp(
+      r'(\d+\.?\d*)',
+    ).allMatches(budget!).map((m) => double.tryParse(m.group(1) ?? ''));
     if (numbers.isEmpty) return null;
-    return numbers.where((n) => n != null).map((n) => n!).reduce((a, b) => a + b) / numbers.length;
+    return numbers
+            .where((n) => n != null)
+            .map((n) => n!)
+            .reduce((a, b) => a + b) /
+        numbers.length;
   }
 
   // Parses the hiring rate string (e.g., "95.00%") into a number.
@@ -92,11 +98,14 @@ class Job {
       skills: skills ?? this.skills,
       employerName: employerName ?? this.employerName,
       employerProfession: employerProfession ?? this.employerProfession,
-      employerRegistrationDate: employerRegistrationDate ?? this.employerRegistrationDate,
+      employerRegistrationDate:
+          employerRegistrationDate ?? this.employerRegistrationDate,
       employerHiringRate: employerHiringRate ?? this.employerHiringRate,
       employerOpenProjects: employerOpenProjects ?? this.employerOpenProjects,
-      employerOngoingCommunications: employerOngoingCommunications ?? this.employerOngoingCommunications,
-      employerProjectsInProgress: employerProjectsInProgress ?? this.employerProjectsInProgress,
+      employerOngoingCommunications:
+          employerOngoingCommunications ?? this.employerOngoingCommunications,
+      employerProjectsInProgress:
+          employerProjectsInProgress ?? this.employerProjectsInProgress,
     );
   }
 }
