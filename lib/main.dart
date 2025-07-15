@@ -91,7 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _searchController.addListener(_applyFilters);
     _scrollController.addListener(() {
       if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent && !_isLoadingMore) {
-        _fetchJobs(page: _currentPage + 1);
+        _fetchJobs(category: _selectedCategory, page: _currentPage + 1);
       }
     });
   }
@@ -137,69 +137,77 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _applyFilters() async {
-    if (_activeFilters.areAdvancedFiltersActive && !_isLoading) {
-      setState(() => _isApplyingAdvancedFilters = true);
-    }
-
-    List<Job> tempFiltered = _jobs.where((job) {
-      final searchMatch = _searchController.text.isEmpty || job.title.toLowerCase().contains(_searchController.text.toLowerCase());
-      final offerMatch = switch (_activeFilters.offerRange) {
-        OfferRange.lessThan5 => job.offerCount < 5,
-        OfferRange.from5to10 => job.offerCount >= 5 && job.offerCount <= 10,
-        OfferRange.from10to20 => job.offerCount >= 10 && job.offerCount <= 20,
-        OfferRange.moreThan20 => job.offerCount > 20,
-        _ => true,
-      };
-      return searchMatch && offerMatch;
-    }).toList();
-
-    if (_activeFilters.areAdvancedFiltersActive) {
-      final jobsToDetail = tempFiltered.take(15).toList();
-      final futures = jobsToDetail.map((job) => _scrapingService.fetchJobDetails(job.url).catchError((e) => job)).toList();
-      
-      final detailedJobs = await Future.wait(futures);
-      
-      Map<String, Job> detailedJobsMap = {for (var j in detailedJobs) j.url: j};
-
-      for (int i = 0; i < tempFiltered.length; i++) {
-        if (detailedJobsMap.containsKey(tempFiltered[i].url)) {
-           final detailedJob = detailedJobsMap[tempFiltered[i].url]!;
-           tempFiltered[i] = tempFiltered[i].copyWith(
-              budget: detailedJob.budget,
-              employerHiringRate: detailedJob.employerHiringRate,
-           );
-        }
-      }
-
-      tempFiltered = tempFiltered.where((job) {
-        final hiringRateMatch = switch (_activeFilters.hiringRate) {
-          HiringRate.moreThan0 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! > 0,
-          HiringRate.moreThan50 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 50,
-          HiringRate.moreThan75 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 75,
-          _ => true,
-        };
-        if (_activeFilters.hiringRate != HiringRate.any && job.parsedEmployerHiringRate == null) {
-          return false;
-        }
-
-        final budgetMatch = job.parsedBudget == null || 
-                            (_activeFilters.budget.end == 2000 ? job.parsedBudget! >= _activeFilters.budget.start : 
-                            (job.parsedBudget! >= _activeFilters.budget.start && job.parsedBudget! <= _activeFilters.budget.end));
-        if ((_activeFilters.budget.start != 0 || _activeFilters.budget.end != 2000) && job.parsedBudget == null) {
-          return false;
-        }
-
-        return hiringRateMatch && budgetMatch;
-      }).toList();
-    }
-
-    setState(() {
-      _filteredJobs = tempFiltered;
-      _isApplyingAdvancedFilters = false;
-    });
+Future<void> _applyFilters() async {
+  if (_activeFilters.areAdvancedFiltersActive && !_isLoading) {
+    setState(() => _isApplyingAdvancedFilters = true);
   }
 
+  List<Job> tempFiltered = _jobs.where((job) {
+    // Search filter
+    final searchMatch = _searchController.text.isEmpty || 
+        job.title.toLowerCase().contains(_searchController.text.toLowerCase());
+    
+    // Offer count filter
+    final offerMatch = switch (_activeFilters.offerRange) {
+      OfferRange.lessThan5 => job.offerCount < 5,
+      OfferRange.from5to10 => job.offerCount >= 5 && job.offerCount <= 10,
+      OfferRange.from10to20 => job.offerCount >= 10 && job.offerCount <= 20,
+      OfferRange.moreThan20 => job.offerCount > 20,
+      _ => true,
+    };
+    
+    // Note: Category filtering is already handled by fetching jobs from the specific category URL
+    // in the fetchJobs method, so we don't need to filter by category here again
+    
+    return searchMatch && offerMatch;
+  }).toList();
+
+  if (_activeFilters.areAdvancedFiltersActive) {
+    final jobsToDetail = tempFiltered.take(15).toList();
+    final futures = jobsToDetail.map((job) => 
+        _scrapingService.fetchJobDetails(job.url).catchError((e) => job)).toList();
+    
+    final detailedJobs = await Future.wait(futures);
+    
+    Map<String, Job> detailedJobsMap = {for (var j in detailedJobs) j.url: j};
+
+    for (int i = 0; i < tempFiltered.length; i++) {
+      if (detailedJobsMap.containsKey(tempFiltered[i].url)) {
+         final detailedJob = detailedJobsMap[tempFiltered[i].url]!;
+         tempFiltered[i] = tempFiltered[i].copyWith(
+            budget: detailedJob.budget,
+            employerHiringRate: detailedJob.employerHiringRate,
+         );
+      }
+    }
+
+    tempFiltered = tempFiltered.where((job) {
+      final hiringRateMatch = switch (_activeFilters.hiringRate) {
+        HiringRate.moreThan0 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! > 0,
+        HiringRate.moreThan50 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 50,
+        HiringRate.moreThan75 => job.parsedEmployerHiringRate != null && job.parsedEmployerHiringRate! >= 75,
+        _ => true,
+      };
+      if (_activeFilters.hiringRate != HiringRate.any && job.parsedEmployerHiringRate == null) {
+        return false;
+      }
+
+      final budgetMatch = job.parsedBudget == null || 
+                          (_activeFilters.budget.end == 2000 ? job.parsedBudget! >= _activeFilters.budget.start : 
+                          (job.parsedBudget! >= _activeFilters.budget.start && job.parsedBudget! <= _activeFilters.budget.end));
+      if ((_activeFilters.budget.start != 0 || _activeFilters.budget.end != 2000) && job.parsedBudget == null) {
+        return false;
+      }
+
+      return hiringRateMatch && budgetMatch;
+    }).toList();
+  }
+
+  setState(() {
+    _filteredJobs = tempFiltered;
+    _isApplyingAdvancedFilters = false;
+  });
+}
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
@@ -248,8 +256,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   max: 2000,
                                   divisions: 40,
                                   labels: RangeLabels(
-                                    '\${_activeFilters.budget.start.round()}',
-                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\${_activeFilters.budget.end.round()}'
+                                    '\$${_activeFilters.budget.start.round()}',
+                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\$${_activeFilters.budget.end.round()}'
                                   ),
                                   onChanged: (values) => setModalState(() => _activeFilters.budget = values),
                                 ),

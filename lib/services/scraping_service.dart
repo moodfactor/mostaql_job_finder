@@ -7,53 +7,66 @@ import '../models/job.dart';
 class ScrapingService {
   final Map<String, String> _categorySlugs = {
     'أعمال وخدمات استشارية': 'business',
-    'برمجة، تطوير المواقع والتطبيقات': 'programming',
+    'برمجة، تطوير المواقع والتطبيقات': 'development',
     'هندسة، عمارة وتصميم داخلي': 'engineering-architecture',
-    'تصميم، فيديو وصوتيات': 'design-video-audio',
-    'تسويق إلكتروني ومبيعات': 'marketing-sales',
+    'تصميم، فيديو وصوتيات': 'design',
+    'تسويق إلكتروني ومبيعات': 'marketing',
     'كتابة، تحرير، ترجمة ولغات': 'writing-translation',
-    'دعم، مساعدة وإدخال بيانات': 'data-entry',
-    'تدريب وتعليم عن بعد': 'remote-training',
+    'دعم، مساعدة وإدخال بيانات': 'support',
+    'تدريب وتعليم عن بعد': 'training',
   };
 
-  Future<List<Job>> fetchJobs({String? category, int page = 1}) async {
-    String url = 'https://mostaql.com/projects';
-    if (category != null && _categorySlugs.containsKey(category)) {
-      url = '$url/skill/${_categorySlugs[category]}?page=$page';
-    } else {
-      url = '$url?page=$page';
-    }
 
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final document = parse(response.body);
-      final jobElements = document.querySelectorAll('tbody > tr');
-      List<Job> jobs = [];
-      for (var element in jobElements) {
-        final titleElement = element.querySelector('h2 > a');
-        final title = titleElement?.text.trim() ?? '';
-        final jobUrl = titleElement?.attributes['href'] ?? '';
-        final description = element.querySelector('p')?.text.trim() ?? '';
-        final author = element.querySelector('td > a.user-card-name')?.text.trim() ?? '';
-        final postTime = element.querySelector('time')?.text.trim() ?? '';
-        final offerCountElement = element.querySelector('li.text-muted i.fa-ticket')?.parent;
-        final offerCountString = offerCountElement?.text.trim() ?? '0';
-        final offerCount = int.tryParse(offerCountString.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-        jobs.add(Job(
-          title: title,
-          description: description,
-          author: author,
-          postTime: postTime,
-          offerCount: offerCount,
-          url: jobUrl,
-        ));
-      }
-      return jobs;
-    } else {
-      throw Exception('Failed to load jobs');
-    }
+Future<List<Job>> fetchJobs({String? category, int page = 1}) async {
+  String url = 'https://mostaql.com/projects';
+  
+  // Build URL with proper parameters
+  List<String> params = [];
+  
+  if (category != null && _categorySlugs.containsKey(category)) {
+    params.add('category=${_categorySlugs[category]}');
   }
+  
+  params.add('sort=latest');
+  
+  if (page > 1) {
+    params.add('page=$page');
+  }
+  
+  url = '$url?${params.join('&')}';
+
+  print('Fetching jobs from URL: $url'); // Debug print
+  
+  final response = await http.get(Uri.parse(url));
+
+  if (response.statusCode == 200) {
+    final document = parse(response.body);
+    final jobElements = document.querySelectorAll('tbody > tr');
+    List<Job> jobs = [];
+    for (var element in jobElements) {
+      final titleElement = element.querySelector('h2 > a');
+      final title = titleElement?.text.trim() ?? '';
+      final jobUrl = titleElement?.attributes['href'] ?? '';
+      final description = element.querySelector('p')?.text.trim() ?? '';
+      final author = element.querySelector('td > a.user-card-name')?.text.trim() ?? '';
+      final postTime = element.querySelector('time')?.text.trim() ?? '';
+      final offerCountElement = element.querySelector('li.text-muted i.fa-ticket')?.parent;
+      final offerCountString = offerCountElement?.text.trim() ?? '0';
+      final offerCount = int.tryParse(offerCountString.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      jobs.add(Job(
+        title: title,
+        description: description,
+        author: author,
+        postTime: postTime,
+        offerCount: offerCount,
+        url: jobUrl,
+      ));
+    }
+    return jobs;
+  } else {
+    throw Exception('Failed to load jobs');
+  }
+}
 
   /// More robustly fetches all details from the job page.
 
