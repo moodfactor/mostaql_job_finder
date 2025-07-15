@@ -16,10 +16,12 @@ class ScrapingService {
     'تدريب وتعليم عن بعد': 'remote-training',
   };
 
-  Future<List<Job>> fetchJobs({String? category}) async {
+  Future<List<Job>> fetchJobs({String? category, int page = 1}) async {
     String url = 'https://mostaql.com/projects';
     if (category != null && _categorySlugs.containsKey(category)) {
-      url = '$url/skill/${_categorySlugs[category]}';
+      url = '$url/skill/${_categorySlugs[category]}?page=$page';
+    } else {
+      url = '$url?page=$page';
     }
 
     final response = await http.get(Uri.parse(url));

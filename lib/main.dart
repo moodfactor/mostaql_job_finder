@@ -74,6 +74,9 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _selectedCategory;
   final TextEditingController _searchController = TextEditingController();
   JobFilters _activeFilters = JobFilters();
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  int _currentPage = 1;
 
   final List<String> _categories = [
     'أعمال وخدمات استشارية', 'برمجة، تطوير المواقع والتطبيقات', 'هندسة، عمارة وتصميم داخلي',
@@ -86,26 +89,51 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _fetchJobs();
     _searchController.addListener(_applyFilters);
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent && !_isLoadingMore) {
+        _fetchJobs(page: _currentPage + 1);
+      }
+    });
   }
   
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchJobs({String? category}) async {
-    setState(() => _isLoading = true);
+  Future<void> _fetchJobs({String? category, int page = 1}) async {
+    if (page == 1) {
+      setState(() => _isLoading = true);
+    } else {
+      setState(() => _isLoadingMore = true);
+    }
+
     try {
-      final jobs = await _scrapingService.fetchJobs(category: category);
+      final jobs = await _scrapingService.fetchJobs(category: category, page: page);
       setState(() {
-        _jobs = jobs;
+        if (page == 1) {
+          _jobs = jobs;
+          _currentPage = 1;
+        } else {
+          _jobs.addAll(jobs);
+          _currentPage = page;
+        }
         _applyFilters();
       });
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to fetch jobs: $e')));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          if (page == 1) {
+            _isLoading = false;
+          } else {
+            _isLoadingMore = false;
+          }
+        });
+      }
     }
   }
 
@@ -220,8 +248,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                   max: 2000,
                                   divisions: 40,
                                   labels: RangeLabels(
-                                    '\$${_activeFilters.budget.start.round()}',
-                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\$${_activeFilters.budget.end.round()}'
+                                    '\${_activeFilters.budget.start.round()}',
+                                    _activeFilters.budget.end == 2000 ? '\$2000+' : '\${_activeFilters.budget.end.round()}'
                                   ),
                                   onChanged: (values) => setModalState(() => _activeFilters.budget = values),
                                 ),
@@ -357,9 +385,13 @@ class _MyHomePageState extends State<MyHomePage> {
                   : _filteredJobs.isEmpty 
                       ? const Center(child: Text("No jobs found with these criteria.", style: TextStyle(fontSize: 18)))
                       : ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.only(top: 130, bottom: 20),
-                          itemCount: _filteredJobs.length,
+                          itemCount: _filteredJobs.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index == _filteredJobs.length) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
                             return JobCard(job: _filteredJobs[index]);
                           },
                         ),
@@ -511,3 +543,4 @@ class ShimmerJobCard extends StatelessWidget {
     );
   }
 }
+
